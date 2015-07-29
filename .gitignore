@@ -13,6 +13,7 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+9[0-9][0-9][0-9][0-9].csv
 
 # Windows shortcuts
 *.lnk
