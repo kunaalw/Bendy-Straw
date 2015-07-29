@@ -95,20 +95,20 @@ def save_output(scrape_output, api_output):
 
     locationMacro = api_output.get('location')
     #if locationMacro is not None:
-    outStringFirst = str(api_output.get('id', default)) + ', ' + str(api_output.get('name', default)) + ', ' + str(api_output.get('is_claimed', default)) + ', ' + str(api_output.get('phone', default)) + ', ' + str(api_output.get('review_count', default)) + ', ' + str(api_output.get('rating', default)) + ', ' + str(locationMacro.get('city', default)) + ', ' + str(locationMacro.get('state_code', default)) + ', ' + str(locationMacro.get('postal_code',default)) + ', '
+    outStringFirst = unicode(api_output.get('id', default)) + ', ' + unicode(api_output.get('name', default)) + ', ' + unicode(api_output.get('is_claimed', default)) + ', ' + unicode(api_output.get('phone', default)) + ', ' + unicode(api_output.get('review_count', default)) + ', ' + unicode(api_output.get('rating', default)) + ', ' + unicode(locationMacro.get('city', default)) + ', ' + unicode(locationMacro.get('state_code', default)) + ', ' + unicode(locationMacro.get('postal_code',default)) + ', '
     #else:
-    #    outStringFirst = str(api_output.get('id')) + ', ' + str(api_output.get('name')) + ', ' + str(api_output.get('is_claimed')) + ', ' + str(api_output.get('phone')) + ', ' + str(api_output.get('review_count')) + ', ' + str(api_output.get('rating')) + ', ' + ', ' + ', ' + ', '
+    #    outStringFirst = unicode(api_output.get('id')) + ', ' + unicode(api_output.get('name')) + ', ' + unicode(api_output.get('is_claimed')) + ', ' + unicode(api_output.get('phone')) + ', ' + unicode(api_output.get('review_count')) + ', ' + unicode(api_output.get('rating')) + ', ' + ', ' + ', ' + ', '
 
     outStringSecond = ''
     for i in range(len(attribute_list)):
-        outStringSecond = outStringSecond + str(scrape_output[attribute_list[i]]).replace(',','+') + ', '
+        outStringSecond = outStringSecond + unicode(scrape_output[attribute_list[i]]).replace(',','+') + ', '
 
     outStringLast = ''
     categoryList = api_output.get('categories')
     if categoryList is not None:
         for j in range(len(categoryList)):
-            tempString = str(categoryList[j]).encode('ascii')
-            outStringLast = outStringLast + str(tempString) + ', '
+            tempString = unicode(categoryList[j]).encode('ascii')
+            outStringLast = outStringLast + unicode(tempString) + ', '
     
     finalWriteString = outStringFirst + outStringSecond + outStringLast
     outFile.write(finalWriteString)
@@ -170,14 +170,14 @@ def scrape_page(business_id):
         randProxyFinder = random.randint(0,23)
 
         proxy = urllib2.ProxyHandler({'http': proxyList[randProxyFinder]})
-        print 'Trying to proxy through IP address ' + str(proxyList[randProxyFinder])
+        print 'Trying to proxy through IP address ' + unicode(proxyList[randProxyFinder])
 
         opener = urllib2.build_opener(proxy)
         urllib2.install_opener(opener)
 
         address = 'http://www.yelp.com/biz/' + business_id
         html = urllib2.urlopen(address, timeout = 120).read()
-        print 'Connected to proxy ' + str(proxyList[randProxyFinder])
+        print 'Connected to proxy ' + unicode(proxyList[randProxyFinder])
 
     except:
         time.sleep(60*random.random())
@@ -191,18 +191,18 @@ def scrape_page(business_id):
     for i in range(len(attribute)):
 
         field = attribute[i].next_element
-        fieldName = str(field.strip())
+        fieldName = unicode(field.strip())
         fieldName = fieldName.replace('\n','')
 
         i2 = field.next_element
         i3 = i2.next_element
         i4 = i3.next_element
-        fieldVal = str(i4.strip())
+        fieldVal = unicode(i4.strip())
         fieldVal = fieldVal.replace('\n','')
         
         if fieldName in attribute_list:
             attribute_dict[fieldName] = fieldVal
-            #print str(fieldName) + ': ' + str(fieldVal)
+            #print unicode(fieldName) + ': ' + unicode(fieldVal)
     
     print 'Scraping completed for ' + business_id
     time.sleep(24*random.random())
@@ -225,7 +225,7 @@ def query_api(term, location, offset):
         dictionaryFile = open('OutletDictionary.csv', 'a+')
         reader = csv.DictReader(dictionaryFile)
         for row in reader:
-            if str(row['ID']) == str(business_id):
+            if (row['ID']).encode('utf-8') == (business_id).encode('utf-8'):
                 print 'Data for ' + business_id + ' already exists.\n'
                 foundBool = 1
                 break
@@ -242,7 +242,7 @@ def query_api(term, location, offset):
 
                 fieldNames = ['ID']
                 writer = csv.writer(dictionaryFile, dialect = 'excel', lineterminator = '\n')
-                fieldVal = [str(business_id)]
+                fieldVal = [unicode(business_id)]
                 writer.writerow(fieldVal)
 
         dictionaryFile.close()
@@ -254,7 +254,8 @@ def main():
 
     global outFileName
     city = 'Los Angeles, CA '
-    zipCodes = (90003, 90004, 90005, 90006, 90007, 90010, 90011, 90012, 90013, 90014, 90015, 90017, 90018, 90019, 90001, 90002, 90020, 90021, 90024, 90025, 90026, 90027, 90028, 90029, 90031, 90033, 90034, 90036, 90037, 90038, 90041, 90042, 90043, 90044, 90046, 90047, 90048, 90049, 90057, 90061, 90062, 90064, 90065, 90067, 90068, 90069, 90071, 90077, 90079, 90089, 90090, 90094, 90095, 90272, 90275, 90291, 90293, 90402, 90405, 90502, 91040, 91042, 91105, 91303, 91304, 91306, 91311, 91316, 91324, 91325, 91326, 91330, 91331, 91335, 91340, 91342, 91343, 91344, 91345, 91352, 91356, 91364, 91367, 91371, 91401, 91402, 91403, 91405, 91406, 91411, 91423, 91436, 91601, 91602, 91604, 91606, 91607, 91608)
+    #90003
+    zipCodes = (90004, 90005, 90006, 90007, 90010, 90011, 90012, 90013, 90014, 90015, 90017, 90018, 90019, 90001, 90002, 90020, 90021, 90024, 90025, 90026, 90027, 90028, 90029, 90031, 90033, 90034, 90036, 90037, 90038, 90041, 90042, 90043, 90044, 90046, 90047, 90048, 90049, 90057, 90061, 90062, 90064, 90065, 90067, 90068, 90069, 90071, 90077, 90079, 90089, 90090, 90094, 90095, 90272, 90275, 90291, 90293, 90402, 90405, 90502, 91040, 91042, 91105, 91303, 91304, 91306, 91311, 91316, 91324, 91325, 91326, 91330, 91331, 91335, 91340, 91342, 91343, 91344, 91345, 91352, 91356, 91364, 91367, 91371, 91401, 91402, 91403, 91405, 91406, 91411, 91423, 91436, 91601, 91602, 91604, 91606, 91607, 91608)
     searchTerms = ('indian food', 'thai food', 'mexican food', 'dessert', 'japanese food', 'korean', 'italian food', 'restaurant', 'chinese food', 'pizza', 'sandwich', 'coffee', 'bar', 'fine dining')
     pages = 1
 
@@ -262,13 +263,13 @@ def main():
         for searchTermIndex in range(len(searchTerms)):
             for pageIndex in range(pages):
                 try:
-                        outFileName = str(zipCodes[zipCodeIndex]) + '.csv'
+                        outFileName = unicode(zipCodes[zipCodeIndex]) + '.csv'
                         outFile = open(outFileName, 'a')
                         outFile.write('ID,Name,Claimed?,Phone,Count,Rating,City,State,Zip-code,Price,Reservations,Delivery,Take-out,Credit cards,Good for,Parking,Bike,Kids,Groups,Attire,Ambience,Noise,Alcohol,Outdoor,WiFi,TV,Waiter,Caters,Tag 1,Tag 2,Tag 3,Tag 4,Tag 5,Tag 6,Tag 7,Tag 8,Tag 9\n')
                         outFile.close()
 
-                        print 'Now checking ' + str(searchTerms[searchTermIndex]) + ' in ' + str(zipCodes[zipCodeIndex])
-                        response = query_api(searchTerms[searchTermIndex], city + str(zipCodes[zipCodeIndex]), str(pageIndex))
+                        print 'Now checking ' + unicode(searchTerms[searchTermIndex]) + ' in ' + unicode(zipCodes[zipCodeIndex])
+                        response = query_api(searchTerms[searchTermIndex], city + unicode(zipCodes[zipCodeIndex]), unicode(pageIndex))
                 except urllib2.HTTPError as error:
                     sys.exit('Encountered HTTP error {0}. Abort program.'.format(error.code))    
                 time.sleep(100+(200*random.random()))
