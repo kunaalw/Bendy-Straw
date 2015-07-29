@@ -176,11 +176,11 @@ def scrape_page(business_id):
         urllib2.install_opener(opener)
 
         address = 'http://www.yelp.com/biz/' + business_id
-        html = urllib2.urlopen(address, timeout = 120).read()
+        html = urllib2.urlopen(address, timeout = 30).read()
         print 'Connected to proxy ' + unicode(proxyList[randProxyFinder])
 
     except:
-        time.sleep(60*random.random())
+        time.sleep(10*random.random())
         return scrape_page(business_id)
         #return attribute_dict
 
@@ -205,7 +205,7 @@ def scrape_page(business_id):
             #print unicode(fieldName) + ': ' + unicode(fieldVal)
     
     print 'Scraping completed for ' + business_id
-    time.sleep(24*random.random())
+    time.sleep(15*random.random())
     return attribute_dict
 
 
@@ -272,7 +272,7 @@ def main():
                         response = query_api(searchTerms[searchTermIndex], city + unicode(zipCodes[zipCodeIndex]), unicode(pageIndex))
                 except urllib2.HTTPError as error:
                     sys.exit('Encountered HTTP error {0}. Abort program.'.format(error.code))    
-                time.sleep(100+(200*random.random()))
+                time.sleep(60*random.random())
 
 if __name__ == '__main__':
     main()
