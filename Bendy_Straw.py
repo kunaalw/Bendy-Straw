@@ -9,11 +9,12 @@ import time
 import random
 import requests
 import csv
-
+import os
 
 from bs4 import BeautifulSoup
 
 
+# Global data
 API_HOST = 'api.yelp.com'
 DEFAULT_TERM = 'Food'
 DEFAULT_LOCATION = 'Los Angeles, CA 90024'
@@ -24,6 +25,7 @@ BUSINESS_PATH = '/v2/business/'
 MAX_QUERIES = 10000
 queryCount = 0
 
+
 # OAuth credentials
 CONSUMER_KEY = 'MjxfYhb66YWLqJYMVxXw9A'
 CONSUMER_SECRET = 'iLbP__sxL2sFXp6yOrGD7asaFM8'
@@ -31,7 +33,10 @@ TOKEN = 'WW7q8N80VJog2qq_FFPQpsKwxxKwhcAr'
 TOKEN_SECRET = 'CYOhmZp1v6rqZ2UYQ42UdWlvzk8'
 
 
+# Request method: Makes SEARCH or BUSINESS requests to Yelp! API
 def request(host, path, url_params=None):
+
+    print 'Attempting to make an API request'
 
     global queryCount
     if queryCount > MAX_QUERIES:
@@ -60,6 +65,7 @@ def request(host, path, url_params=None):
     try:
         conn = urllib2.urlopen(signed_url, None)
     except:
+        print 'API request failed: Retrying in ~15 seconds'
         time.sleep(30*random.random())
         return request(host, path, url_params)
 
@@ -71,6 +77,7 @@ def request(host, path, url_params=None):
     return response
 
 
+# Search method: Calls the request function to search for businesses matching given input parameters
 def search(term, location, offset):
     url_params = {
         'term': term.replace(' ', '+'),
@@ -82,11 +89,13 @@ def search(term, location, offset):
     return request(API_HOST, SEARCH_PATH, url_params=url_params)
 
 
+# Get business method: Calls the request function to obtain data given a certain business ID
 def get_business(business_id):
     business_path = BUSINESS_PATH + business_id
     return request(API_HOST, business_path)
 
 
+# Saves the output to output files; restographic data in /restographics folder; review data in /review folder
 def save_output(scrape_output, api_output):
     
     outFile = open(outFileName, 'a')
@@ -94,11 +103,8 @@ def save_output(scrape_output, api_output):
     default = ''
 
     locationMacro = api_output.get('location')
-    #if locationMacro is not None:
     outStringFirst = unicode(api_output.get('id', default)) + ', ' + unicode(api_output.get('name', default)) + ', ' + unicode(api_output.get('is_claimed', default)) + ', ' + unicode(api_output.get('phone', default)) + ', ' + unicode(api_output.get('review_count', default)) + ', ' + unicode(api_output.get('rating', default)) + ', ' + unicode(locationMacro.get('city', default)) + ', ' + unicode(locationMacro.get('state_code', default)) + ', ' + unicode(locationMacro.get('postal_code',default)) + ', '
-    #else:
-    #    outStringFirst = unicode(api_output.get('id')) + ', ' + unicode(api_output.get('name')) + ', ' + unicode(api_output.get('is_claimed')) + ', ' + unicode(api_output.get('phone')) + ', ' + unicode(api_output.get('review_count')) + ', ' + unicode(api_output.get('rating')) + ', ' + ', ' + ', ' + ', '
-
+ 
     outStringSecond = ''
     for i in range(len(attribute_list)):
         outStringSecond = outStringSecond + unicode(scrape_output[attribute_list[i]]).replace(',','+') + ', '
@@ -107,7 +113,7 @@ def save_output(scrape_output, api_output):
     categoryList = api_output.get('categories')
     if categoryList is not None:
         for j in range(len(categoryList)):
-            tempString = unicode(categoryList[j]).encode('ascii')
+            tempString = unicode(categoryList[j][1]).strip()
             outStringLast = outStringLast + unicode(tempString) + ', '
     
     finalWriteString = outStringFirst + outStringSecond + outStringLast
@@ -115,6 +121,7 @@ def save_output(scrape_output, api_output):
     outFile.close()
 
 
+# Scrapes attribute and review data from pages; rotates proxies to make HTTP calls and parses output
 def scrape_page(business_id):
 
     attribute_dict = {
@@ -180,13 +187,13 @@ def scrape_page(business_id):
         print 'Connected to proxy ' + unicode(proxyList[randProxyFinder])
 
     except:
+        print 'Could not connect to HTTP site: Retrying in ~5 seconds'
         time.sleep(10*random.random())
         return scrape_page(business_id)
-        #return attribute_dict
-
-    #print '\nScraped attributes for: ' + business_id
 
     soup = BeautifulSoup(html, 'html.parser')
+
+    # Scrape restographic/attribute data from page
     attribute = soup.find_all("dt", class_="attribute-key")
     for i in range(len(attribute)):
 
@@ -203,8 +210,34 @@ def scrape_page(business_id):
         if fieldName in attribute_list:
             attribute_dict[fieldName] = fieldVal
             #print unicode(fieldName) + ': ' + unicode(fieldVal)
+    print 'Attribute scraping completed for ' + business_id
+
+    # Scrape review data from page
+    star_rating = soup.find_all("meta", {"itemprop":"ratingValue"})
+    review_text = soup.find_all("p", {"itemprop":"description"})
+    review_out_data = ''
     
-    print 'Scraping completed for ' + business_id
+    for e in soup.findAll('br'):
+        e.extract()
+    
+    for i in range((len(star_rating)-1)):
+        star_value = star_rating[i+1]
+        review_out_data = review_out_data + unicode(business_id) + ',' +  star_value['content'] + ','
+       
+        comment_value = review_text[i].next_element
+        comment_text = comment_value.strip()
+        comment_text = comment_text.replace('\n',' ')
+        comment_text = comment_text.replace(',',' ')
+        comment_text = comment_text.replace('\t',' ')
+
+        review_out_data = review_out_data + comment_text + '\n'
+
+    outFile2 = open(outFileName2, 'a')
+    outFile2.write(review_out_data)
+    outFile2.close()
+
+    print 'Review scraping completed for ' + business_id
+
     time.sleep(15*random.random())
     return attribute_dict
 
@@ -252,24 +285,38 @@ def query_api(term, location, offset):
 
 def main():
 
+    reload(sys)
+    sys.setdefaultencoding('utf8')
     global outFileName
+    global outFileName2
+
     city = 'Los Angeles, CA '
-    #90003
-    zipCodes = (90004, 90005, 90006, 90007, 90010, 90011, 90012, 90013, 90014, 90015, 90017, 90018, 90019, 90001, 90002, 90020, 90021, 90024, 90025, 90026, 90027, 90028, 90029, 90031, 90033, 90034, 90036, 90037, 90038, 90041, 90042, 90043, 90044, 90046, 90047, 90048, 90049, 90057, 90061, 90062, 90064, 90065, 90067, 90068, 90069, 90071, 90077, 90079, 90089, 90090, 90094, 90095, 90272, 90275, 90291, 90293, 90402, 90405, 90502, 91040, 91042, 91105, 91303, 91304, 91306, 91311, 91316, 91324, 91325, 91326, 91330, 91331, 91335, 91340, 91342, 91343, 91344, 91345, 91352, 91356, 91364, 91367, 91371, 91401, 91402, 91403, 91405, 91406, 91411, 91423, 91436, 91601, 91602, 91604, 91606, 91607, 91608)
+    zipCodes = (90003, 90004, 90005, 90006, 90007, 90010, 90011, 90012, 90013, 90014, 90015, 90017, 90018, 90019, 90001, 90002, 90020, 90021, 90024, 90025, 90026, 90027, 90028, 90029, 90031, 90033, 90034, 90036, 90037, 90038, 90041, 90042, 90043, 90044, 90046, 90047, 90048, 90049, 90057, 90061, 90062, 90064, 90065, 90067, 90068, 90069, 90071, 90077, 90079, 90089, 90090, 90094, 90095, 90272, 90275, 90291, 90293, 90402, 90405, 90502, 91040, 91042, 91105, 91303, 91304, 91306, 91311, 91316, 91324, 91325, 91326, 91330, 91331, 91335, 91340, 91342, 91343, 91344, 91345, 91352, 91356, 91364, 91367, 91371, 91401, 91402, 91403, 91405, 91406, 91411, 91423, 91436, 91601, 91602, 91604, 91606, 91607, 91608)
     searchTerms = ('indian food', 'thai food', 'mexican food', 'dessert', 'japanese food', 'korean', 'italian food', 'restaurant', 'chinese food', 'pizza', 'sandwich', 'coffee', 'bar', 'fine dining')
     pages = 1
 
+    dir = os.path.dirname(__file__)
+
     for zipCodeIndex in range(len(zipCodes)):
+        outFileNameText = unicode('restographics\\' + unicode(zipCodes[zipCodeIndex])) + '.csv'
+        outFileNameText2 = unicode('reviews\\' + unicode(zipCodes[zipCodeIndex])) + '.csv'
+
+        outFileName = os.path.join(dir, outFileNameText)
+        outFileName2 = os.path.join(dir, outFileNameText2)
+
+        outFile = open(outFileName, 'a')
+        outFile.write('ID,Name,Claimed?,Phone,Count,Rating,City,State,Zip-code,Price,Reservations,Delivery,Take-out,Credit cards,Good for,Parking,Bike,Kids,Groups,Attire,Ambience,Noise,Alcohol,Outdoor,WiFi,TV,Waiter,Caters,Tag 1,Tag 2,Tag 3,Tag 4,Tag 5,Tag 6,Tag 7,Tag 8,Tag 9\n')
+        outFile.close()
+
+        outFile2 = open(outFileName2, 'a')
+        outFile2.write('ID,Rating,Comment text\n')
+        outFile2.close()
+
         for searchTermIndex in range(len(searchTerms)):
             for pageIndex in range(pages):
                 try:
-                        outFileName = unicode(zipCodes[zipCodeIndex]) + '.csv'
-                        outFile = open(outFileName, 'a')
-                        outFile.write('ID,Name,Claimed?,Phone,Count,Rating,City,State,Zip-code,Price,Reservations,Delivery,Take-out,Credit cards,Good for,Parking,Bike,Kids,Groups,Attire,Ambience,Noise,Alcohol,Outdoor,WiFi,TV,Waiter,Caters,Tag 1,Tag 2,Tag 3,Tag 4,Tag 5,Tag 6,Tag 7,Tag 8,Tag 9\n')
-                        outFile.close()
-
-                        print 'Now checking ' + unicode(searchTerms[searchTermIndex]) + ' in ' + unicode(zipCodes[zipCodeIndex])
-                        response = query_api(searchTerms[searchTermIndex], city + unicode(zipCodes[zipCodeIndex]), unicode(pageIndex))
+                    print 'Now checking ' + unicode(searchTerms[searchTermIndex]) + ' in ' + unicode(zipCodes[zipCodeIndex])
+                    response = query_api(searchTerms[searchTermIndex], city + unicode(zipCodes[zipCodeIndex]), unicode(pageIndex))
                 except urllib2.HTTPError as error:
                     sys.exit('Encountered HTTP error {0}. Abort program.'.format(error.code))    
                 time.sleep(60*random.random())
