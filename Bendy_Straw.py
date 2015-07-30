@@ -40,6 +40,7 @@ def request(host, path, url_params=None):
 
     global queryCount
     if queryCount > MAX_QUERIES:
+        print 'Exiting now. Maximum queries exceeded'
         sys.exit('Exceeded maximum daily allowable calls to API')
 
     queryCount = queryCount + 1
@@ -220,10 +221,11 @@ def scrape_page(business_id):
     for e in soup.findAll('br'):
         e.extract()
     
-    for i in range((len(star_rating)-1)):
+    for i in range(len(review_text)):
+        
         star_value = star_rating[i+1]
         review_out_data = review_out_data + unicode(business_id) + ',' +  star_value['content'] + ','
-       
+
         comment_value = review_text[i].next_element
         comment_text = comment_value.strip()
         comment_text = comment_text.replace('\n',' ')
@@ -292,7 +294,7 @@ def main():
 
     city = 'Los Angeles, CA '
     zipCodes = (90003, 90004, 90005, 90006, 90007, 90010, 90011, 90012, 90013, 90014, 90015, 90017, 90018, 90019, 90001, 90002, 90020, 90021, 90024, 90025, 90026, 90027, 90028, 90029, 90031, 90033, 90034, 90036, 90037, 90038, 90041, 90042, 90043, 90044, 90046, 90047, 90048, 90049, 90057, 90061, 90062, 90064, 90065, 90067, 90068, 90069, 90071, 90077, 90079, 90089, 90090, 90094, 90095, 90272, 90275, 90291, 90293, 90402, 90405, 90502, 91040, 91042, 91105, 91303, 91304, 91306, 91311, 91316, 91324, 91325, 91326, 91330, 91331, 91335, 91340, 91342, 91343, 91344, 91345, 91352, 91356, 91364, 91367, 91371, 91401, 91402, 91403, 91405, 91406, 91411, 91423, 91436, 91601, 91602, 91604, 91606, 91607, 91608)
-    searchTerms = ('indian food', 'thai food', 'mexican food', 'dessert', 'japanese food', 'korean', 'italian food', 'restaurant', 'chinese food', 'pizza', 'sandwich', 'coffee', 'bar', 'fine dining')
+    searchTerms = ('mexican food', 'thai food', 'indian food', 'dessert', 'japanese food', 'korean', 'italian food', 'restaurant', 'chinese food', 'pizza', 'sandwich', 'coffee', 'bar', 'fine dining')
     pages = 1
 
     dir = os.path.dirname(__file__)
@@ -318,6 +320,7 @@ def main():
                     print 'Now checking ' + unicode(searchTerms[searchTermIndex]) + ' in ' + unicode(zipCodes[zipCodeIndex])
                     response = query_api(searchTerms[searchTermIndex], city + unicode(zipCodes[zipCodeIndex]), unicode(pageIndex))
                 except urllib2.HTTPError as error:
+                    print 'HTTP error; exiting now'
                     sys.exit('Encountered HTTP error {0}. Abort program.'.format(error.code))    
                 time.sleep(60*random.random())
 
